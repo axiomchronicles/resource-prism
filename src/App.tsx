@@ -3,7 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { AnimatePresence } from "framer-motion";
+import { Layout } from "./components/Layout";
+import Home from "./pages/Home";
+import Notes from "./pages/Notes";
+import PPTs from "./pages/PPTs";
+import Upload from "./pages/Upload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -14,11 +19,21 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AnimatePresence mode="wait">
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="notes" element={<Notes />} />
+              <Route path="ppts" element={<PPTs />} />
+              <Route path="past-papers" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl font-bold">Past Papers - Coming Soon</h1></div>} />
+              <Route path="tutorials" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl font-bold">Tutorials - Coming Soon</h1></div>} />
+              <Route path="upload" element={<Upload />} />
+              <Route path="dashboard" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl font-bold">Dashboard - Coming Soon</h1></div>} />
+              <Route path="library" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl font-bold">My Library - Coming Soon</h1></div>} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </AnimatePresence>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
