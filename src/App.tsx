@@ -8,7 +8,11 @@ import { Layout } from "./components/Layout";
 import Home from "./pages/Home";
 import Notes from "./pages/Notes";
 import PPTs from "./pages/PPTs";
+import PastPapers from "./pages/PastPapers";
+import Tutorials from "./pages/Tutorials";
 import Upload from "./pages/Upload";
+import Dashboard from "./pages/Dashboard";
+import MyLibrary from "./pages/MyLibrary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,11 +29,11 @@ const App = () => (
               <Route index element={<Home />} />
               <Route path="notes" element={<Notes />} />
               <Route path="ppts" element={<PPTs />} />
-              <Route path="past-papers" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl font-bold">Past Papers - Coming Soon</h1></div>} />
-              <Route path="tutorials" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl font-bold">Tutorials - Coming Soon</h1></div>} />
+              <Route path="past-papers" element={<PastPapers />} />
+              <Route path="tutorials" element={<Tutorials />} />
               <Route path="upload" element={<Upload />} />
-              <Route path="dashboard" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl font-bold">Dashboard - Coming Soon</h1></div>} />
-              <Route path="library" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-4xl font-bold">My Library - Coming Soon</h1></div>} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="library" element={<MyLibrary />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
