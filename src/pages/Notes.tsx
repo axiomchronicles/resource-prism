@@ -23,6 +23,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchBar } from "@/components/SearchBar";
+import { useToast } from "@/hooks/use-toast";
+import { QuickPreviewDrawer } from "@/components/QuickPreviewDrawer";
+import { useAppStore } from "@/stores/appStore";
 
 const mockNotes = [
   {
@@ -94,6 +97,7 @@ export default function Notes() {
   const [selectedSemester, setSelectedSemester] = useState("all");
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [savedNotes, setSavedNotes] = useState<number[]>([]);
+  const { setPreviewResource, previewResource } = useAppStore();
 
   const toggleSaveNote = (noteId: number) => {
     setSavedNotes(prev => 
@@ -290,10 +294,24 @@ export default function Notes() {
                           variant="outline" 
                           size="sm" 
                           className="flex-1"
-                          onClick={() => {
-                            // Preview functionality would integrate with DocumentPreview component
-                            console.log("Preview note:", note.id);
-                          }}
+                          onClick={() => setPreviewResource({
+                            id: note.id.toString(),
+                            title: note.title,
+                            type: 'pdf',
+                            subject: note.subject,
+                            semester: note.semester,
+                            author: note.author,
+                            authorId: 'author1',
+                            uploadDate: note.uploadDate,
+                            downloadUrl: '/sample.pdf',
+                            fileSize: '2.5 MB',
+                            downloads: note.downloads,
+                            rating: note.rating,
+                            tags: note.tags,
+                            description: note.preview,
+                            pages: note.pages,
+                            difficulty: 'Medium'
+                          })}
                         >
                           <Eye className="w-4 h-4" />
                           Preview
@@ -380,6 +398,12 @@ export default function Notes() {
             </p>
           </motion.div>
         )}
+
+      <QuickPreviewDrawer
+        resource={previewResource}
+        isOpen={!!previewResource}
+        onClose={() => setPreviewResource(null)}
+      />
       </div>
     </div>
   );

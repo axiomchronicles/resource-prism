@@ -83,6 +83,7 @@ const stats = [
 ];
 
 export default function Home() {
+  const { setPreviewResource, previewResource } = useAppStore();
   return (
     <div className="min-h-screen">
       {/* Hero Section */}

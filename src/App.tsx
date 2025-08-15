@@ -17,6 +17,8 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import Dashboard from "./pages/Dashboard";
 import MyLibrary from "./pages/MyLibrary";
+import Community from "./pages/Community";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +44,8 @@ const App = () => (
               <Route path="register" element={<Register />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="library" element={<MyLibrary />} />
+              <Route path="community" element={<Community />} />
+              <Route path="notifications" element={<Notifications />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>

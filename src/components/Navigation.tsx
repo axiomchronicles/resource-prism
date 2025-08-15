@@ -11,7 +11,9 @@ import {
   Bookmark,
   Menu,
   X,
-  Users2
+  Users2,
+  MessageSquare,
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,8 +26,10 @@ const navItems = [
   { name: "Tutorials", href: "/tutorials", icon: Upload },
   { name: "Classmates", href: "/classmates", icon: Users2 },
   { name: "Mock Tests", href: "/mock-tests", icon: BarChart3 },
+  { name: "Community", href: "/community", icon: MessageSquare },
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "My Library", href: "/library", icon: Bookmark },
+  { name: "Notifications", href: "/notifications", icon: Bell },
 ];
 
 export const Navigation = () => {
