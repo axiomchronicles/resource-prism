@@ -10,7 +10,8 @@ import {
   BarChart3,
   Bookmark,
   Menu,
-  X
+  X,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,9 @@ const navItems = [
   { name: "Notes", href: "/notes", icon: FileText },
   { name: "PPTs", href: "/ppts", icon: Presentation },
   { name: "Past Papers", href: "/past-papers", icon: ScrollText },
-  { name: "Upload", href: "/upload", icon: Upload },
+  { name: "Tutorials", href: "/tutorials", icon: Upload },
+  { name: "Classmates", href: "/classmates", icon: Users },
+  { name: "Mock Tests", href: "/mock-tests", icon: BarChart3 },
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "My Library", href: "/library", icon: Bookmark },
 ];

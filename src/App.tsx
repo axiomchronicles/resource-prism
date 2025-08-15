@@ -11,6 +11,10 @@ import PPTs from "./pages/PPTs";
 import PastPapers from "./pages/PastPapers";
 import Tutorials from "./pages/Tutorials";
 import Upload from "./pages/Upload";
+import Classmates from "./pages/Classmates";
+import MockTests from "./pages/MockTests";
+import Login from "./pages/Auth/Login";
+import Register from "./pages/Auth/Register";
 import Dashboard from "./pages/Dashboard";
 import MyLibrary from "./pages/MyLibrary";
 import NotFound from "./pages/NotFound";
@@ -32,6 +36,10 @@ const App = () => (
               <Route path="past-papers" element={<PastPapers />} />
               <Route path="tutorials" element={<Tutorials />} />
               <Route path="upload" element={<Upload />} />
+              <Route path="classmates" element={<Classmates />} />
+              <Route path="mock-tests" element={<MockTests />} />
+              <Route path="login" element={<Login />} />
+              <Route path="register" element={<Register />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="library" element={<MyLibrary />} />
               <Route path="*" element={<NotFound />} />

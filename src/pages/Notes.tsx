@@ -286,7 +286,15 @@ export default function Notes() {
                       </div>
 
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => {
+                            // Preview functionality would integrate with DocumentPreview component
+                            console.log("Preview note:", note.id);
+                          }}
+                        >
                           <Eye className="w-4 h-4" />
                           Preview
                         </Button>
