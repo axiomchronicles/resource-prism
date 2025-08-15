@@ -11,10 +11,9 @@ import {
   Bookmark,
   Menu,
   X,
-  Users2,
-  MessageSquare,
-  Bell
+  Users2
 } from "lucide-react";
+import { MessageSquare, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

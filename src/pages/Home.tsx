@@ -8,12 +8,15 @@ import {
   Users,
   Download,
   Star,
-  ArrowRight
+  ArrowRight,
+  Search
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/SearchBar";
 import { Card } from "@/components/ui/card";
+import { QuickPreviewDrawer } from "@/components/QuickPreviewDrawer";
+import { useAppStore } from "@/stores/appStore";
 import heroImage from "@/assets/hero-bg.jpg";
 
 const categories = [
@@ -288,6 +291,30 @@ export default function Home() {
                         {resource.rating}
                       </span>
                     </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setPreviewResource({
+                        id: resource.title,
+                        title: resource.title,
+                        type: 'pdf',
+                        subject: resource.subject,
+                        semester: '3rd',
+                        author: 'Student',
+                        authorId: 'student1',
+                        uploadDate: '2024-01-15',
+                        downloadUrl: '/sample.pdf',
+                        fileSize: '2.5 MB',
+                        downloads: resource.downloads,
+                        rating: resource.rating,
+                        tags: [resource.type],
+                        description: `Preview of ${resource.title}`,
+                        difficulty: 'Medium'
+                      })}
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Quick Preview
+                    </Button>
                   </div>
                 </Card>
               </motion.div>
@@ -326,6 +353,12 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      <QuickPreviewDrawer
+        resource={previewResource}
+        isOpen={!!previewResource}
+        onClose={() => setPreviewResource(null)}
+      />
     </div>
   );
 }
