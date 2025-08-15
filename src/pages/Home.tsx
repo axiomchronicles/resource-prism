@@ -21,16 +21,16 @@ import heroImage from "@/assets/hero-bg.jpg";
 
 const categories = [
   {
-    title: "Study Notes",
-    description: "Comprehensive notes for BCA(AI&ML) subjects",
+    title: "Notes",
+    description: "Study materials and lecture notes",
     icon: FileText,
     href: "/notes",
     count: "2,450+",
     color: "from-blue-500 to-blue-600"
   },
   {
-    title: "Presentations",
-    description: "PPTs for AI, ML, and Computer Science topics",
+    title: "PPTs",
+    description: "Presentations and slide decks",
     icon: Presentation,
     href: "/ppts",
     count: "1,280+",
@@ -38,15 +38,15 @@ const categories = [
   },
   {
     title: "Past Papers",
-    description: "Previous year question papers & solutions",
+    description: "Previous year question papers",
     icon: ScrollText,
     href: "/past-papers",
     count: "890+",
     color: "from-green-500 to-green-600"
   },
   {
-    title: "Video Tutorials",
-    description: "Programming & AI/ML tutorials",
+    title: "Tutorials",
+    description: "Video guides and how-tos",
     icon: PlayCircle,
     href: "/tutorials",
     count: "560+",
@@ -56,72 +56,33 @@ const categories = [
 
 const trendingResources = [
   {
-    title: "Machine Learning Fundamentals",
+    title: "Data Structures & Algorithms",
     type: "Notes",
-    downloads: 2240,
+    downloads: 1240,
     rating: 4.9,
-    subject: "Artificial Intelligence",
-    author: "Priya Sharma",
-    semester: "5th",
-    tags: ["ML", "AI", "Python", "Algorithms"]
+    subject: "Computer Science"
   },
   {
-    title: "Data Structures in C++",
+    title: "Machine Learning Basics",
     type: "PPT",
-    downloads: 1980,
+    downloads: 980,
     rating: 4.8,
-    subject: "Data Structures",
-    author: "Raj Kumar",
-    semester: "3rd",
-    tags: ["DSA", "C++", "Programming"]
+    subject: "Computer Science"
   },
   {
-    title: "Python Programming 2023",
+    title: "Database Systems 2023",
     type: "Paper",
-    downloads: 1760,
+    downloads: 760,
     rating: 4.7,
-    subject: "Programming",
-    author: "Ankit Gupta",
-    semester: "2nd",
-    tags: ["Python", "Exam", "2023"]
-  },
-  {
-    title: "Neural Networks Deep Dive",
-    type: "Tutorial",
-    downloads: 1540,
-    rating: 4.9,
-    subject: "Deep Learning",
-    author: "Sarah Wilson",
-    semester: "6th",
-    tags: ["Neural Networks", "Deep Learning", "TensorFlow"]
-  },
-  {
-    title: "Database Management Systems",
-    type: "Notes",
-    downloads: 1420,
-    rating: 4.6,
-    subject: "DBMS",
-    author: "Vikram Singh",
-    semester: "4th",
-    tags: ["Database", "SQL", "DBMS"]
-  },
-  {
-    title: "Computer Networks Concepts",
-    type: "PPT",
-    downloads: 1380,
-    rating: 4.8,
-    subject: "Networks",
-    author: "Neha Patel",
-    semester: "5th",
-    tags: ["Networks", "TCP/IP", "OSI"]
+    subject: "Computer Science"
   }
 ];
 
 const stats = [
-  { label: "BCA Resources", value: "5,180+" },
-  { label: "Active Students", value: "12,000+" },
-  { label: "Total Downloads", value: "45,000+" },
-  { label: "Partner Colleges", value: "50+" }
+  { label: "Resources", value: "5,180+" },
+  { label: "Students", value: "12,000+" },
+  { label: "Downloads", value: "45,000+" },
+  { label: "Universities", value: "50+" }
 ];
 
 export default function Home() {
@@ -146,19 +107,19 @@ export default function Home() {
           >
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                SCA Resources
+                Find
               </span>{" "}
               <span className="text-foreground">
-                Hub for
+                Every Resource
               </span>{" "}
               <span className="bg-gradient-primary bg-clip-text text-transparent">
-                BCA(AI&ML)
+                You Need
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed">
               Access thousands of study materials, presentations, and past papers
               <br />
-              shared by BCA(AI&ML) students from School of Computer Application
+              shared by students from top universities
             </p>
           </motion.div>
 
