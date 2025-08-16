@@ -26,6 +26,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { useUploadResource } from "@/hooks/useResources";
+import { uploadFile } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 interface UploadedFile {
   id: string;
@@ -58,9 +62,13 @@ export default function Upload() {
   const [description, setDescription] = useState("");
   const [subject, setSubject] = useState("");
   const [semester, setSemester] = useState("");
-  const [courseCode, setCourseCode] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { isAuthenticated } = useAuth();
+  const uploadMutation = useUploadResource();
+  const navigate = useNavigate();
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -149,16 +157,59 @@ export default function Upload() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log({
-      title,
-      description,
-      subject,
-      semester,
-      courseCode,
-      tags,
-      files
-    });
+    
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/upload');
+      return;
+    }
+    
+    if (files.length === 0 || !title || !subject || !semester) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    // Upload the first file (for simplicity, handling single file upload)
+    const file = files[0];
+    const fileBlob = new File([], file.name, { type: file.type });
+    
+    uploadFile(fileBlob)
+      .then(({ url }) => {
+        return uploadMutation.mutateAsync({
+          title,
+          description: description || undefined,
+          type: getResourceType(file.type),
+          subject: subject as any,
+          semester: semester as any,
+          file_url: url,
+          file_size: file.size,
+          file_type: file.type,
+          tags: tags.length > 0 ? tags : undefined
+        });
+      })
+      .then(() => {
+        // Reset form
+        setTitle("");
+        setDescription("");
+        setSubject("");
+        setSemester("");
+        setTags([]);
+        setFiles([]);
+        navigate('/dashboard');
+      })
+      .catch((error) => {
+        console.error('Upload failed:', error);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
+  };
+
+  const getResourceType = (fileType: string): any => {
+    if (fileType.includes('pdf')) return 'notes';
+    if (fileType.includes('presentation') || fileType.includes('powerpoint')) return 'ppt';
+    if (fileType.includes('video')) return 'tutorial';
+    return 'other';
   };
 
   return (
@@ -314,13 +365,19 @@ export default function Upload() {
                       <SelectValue placeholder="Select subject" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Computer Science">Computer Science</SelectItem>
-                      <SelectItem value="Mathematics">Mathematics</SelectItem>
-                      <SelectItem value="Physics">Physics</SelectItem>
-                      <SelectItem value="Chemistry">Chemistry</SelectItem>
-                      <SelectItem value="Engineering">Engineering</SelectItem>
-                      <SelectItem value="Business">Business</SelectItem>
-                      <SelectItem value="Economics">Economics</SelectItem>
+                      <SelectItem value="programming">Programming</SelectItem>
+                      <SelectItem value="mathematics">Mathematics</SelectItem>
+                      <SelectItem value="database">Database</SelectItem>
+                      <SelectItem value="networking">Networking</SelectItem>
+                      <SelectItem value="ai_ml">AI & Machine Learning</SelectItem>
+                      <SelectItem value="web_development">Web Development</SelectItem>
+                      <SelectItem value="software_engineering">Software Engineering</SelectItem>
+                      <SelectItem value="data_structures">Data Structures</SelectItem>
+                      <SelectItem value="algorithms">Algorithms</SelectItem>
+                      <SelectItem value="computer_graphics">Computer Graphics</SelectItem>
+                      <SelectItem value="mobile_development">Mobile Development</SelectItem>
+                      <SelectItem value="cybersecurity">Cybersecurity</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -332,27 +389,14 @@ export default function Upload() {
                       <SelectValue placeholder="Select semester" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1st">1st Semester</SelectItem>
-                      <SelectItem value="2nd">2nd Semester</SelectItem>
-                      <SelectItem value="3rd">3rd Semester</SelectItem>
-                      <SelectItem value="4th">4th Semester</SelectItem>
-                      <SelectItem value="5th">5th Semester</SelectItem>
-                      <SelectItem value="6th">6th Semester</SelectItem>
-                      <SelectItem value="7th">7th Semester</SelectItem>
-                      <SelectItem value="8th">8th Semester</SelectItem>
+                      <SelectItem value="1">1st Semester</SelectItem>
+                      <SelectItem value="2">2nd Semester</SelectItem>
+                      <SelectItem value="3">3rd Semester</SelectItem>
+                      <SelectItem value="4">4th Semester</SelectItem>
+                      <SelectItem value="5">5th Semester</SelectItem>
+                      <SelectItem value="6">6th Semester</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label htmlFor="course-code">Course Code</Label>
-                  <Input
-                    id="course-code"
-                    value={courseCode}
-                    onChange={(e) => setCourseCode(e.target.value)}
-                    placeholder="e.g., CS301, MATH201"
-                    className="mt-2"
-                  />
                 </div>
 
                 <div className="md:col-span-2">
@@ -442,10 +486,10 @@ export default function Upload() {
               variant="hero"
               size="lg"
               className="flex-1 md:flex-none"
-              disabled={files.length === 0 || !title || !subject || !semester}
+              disabled={files.length === 0 || !title || !subject || !semester || isSubmitting}
             >
               <UploadIcon className="w-5 h-5" />
-              Publish Resource
+              {isSubmitting ? 'Publishing...' : 'Publish Resource'}
             </Button>
             <Button
               type="button"
@@ -456,7 +500,6 @@ export default function Upload() {
                 setDescription("");
                 setSubject("");
                 setSemester("");
-                setCourseCode("");
                 setTags([]);
                 setFiles([]);
               }}

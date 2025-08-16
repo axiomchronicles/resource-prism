@@ -29,120 +29,50 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAppStore, Thread, Reply as ReplyType } from '@/stores/appStore';
+import { useAppStore } from '@/stores/appStore';
 import { useToast } from '@/hooks/use-toast';
+import { useDiscussions, useCreateDiscussion, useDiscussionReplies, useCreateReply, useDiscussionSubscription } from '@/hooks/useDiscussions';
+import { useAuth } from '@/hooks/useAuth';
 
-const mockThreads: Thread[] = [
-  {
-    id: '1',
-    title: 'Best resources for Data Structures and Algorithms?',
-    content: 'Hi everyone! I\'m looking for comprehensive resources to study DSA. Can anyone recommend good books, videos, or practice platforms?',
-    author: 'Alex Kumar',
-    authorId: '1',
-    authorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alex',
-    course: 'Computer Science',
-    topic: 'Data Structures',
-    timestamp: '2 hours ago',
-    likes: 24,
-    replies: 12,
-    isLiked: false,
-    tags: ['DSA', 'Study Tips', 'Programming']
-  },
-  {
-    id: '2',
-    title: 'Physics formulas cheat sheet',
-    content: 'Created a comprehensive physics formulas cheat sheet for semester 3. Covers mechanics, thermodynamics, and waves. Hope it helps!',
-    author: 'Priya Singh',
-    authorId: '2',
-    authorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=priya',
-    course: 'Physics',
-    topic: 'Study Materials',
-    timestamp: '5 hours ago',
-    likes: 45,
-    replies: 8,
-    isLiked: true,
-    tags: ['Physics', 'Formulas', 'Cheat Sheet']
-  },
-  {
-    id: '3',
-    title: 'Group study for upcoming exams?',
-    content: 'Anyone interested in forming a study group for the upcoming mid-semester exams? We can meet online and cover topics together.',
-    author: 'Rahul Sharma',
-    authorId: '3',
-    authorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rahul',
-    course: 'Engineering',
-    topic: 'Study Groups',
-    timestamp: '1 day ago',
-    likes: 18,
-    replies: 25,
-    isLiked: false,
-    tags: ['Study Group', 'Exams', 'Collaboration']
-  }
-];
-
-const mockReplies: Record<string, ReplyType[]> = {
-  '1': [
-    {
-      id: '1-1',
-      threadId: '1',
-      content: 'I highly recommend "Introduction to Algorithms" by CLRS. It\'s comprehensive and well-explained.',
-      author: 'Sarah Wilson',
-      authorId: '4',
-      authorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
-      timestamp: '1 hour ago',
-      likes: 8,
-      isLiked: false
-    },
-    {
-      id: '1-2',
-      threadId: '1',
-      content: 'For practice, LeetCode and GeeksforGeeks are excellent platforms. Start with easy problems and gradually move to harder ones.',
-      author: 'Mike Chen',
-      authorId: '5',
-      authorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mike',
-      timestamp: '30 minutes ago',
-      likes: 12,
-      isLiked: true
-    }
-  ]
-};
 
 export default function Community() {
   const [activeTab, setActiveTab] = useState('trending');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState('');
-  const [selectedTopic, setSelectedTopic] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [showNewThreadDialog, setShowNewThreadDialog] = useState(false);
   const [expandedThread, setExpandedThread] = useState<string | null>(null);
   const [newThreadTitle, setNewThreadTitle] = useState('');
   const [newThreadContent, setNewThreadContent] = useState('');
   const [newThreadTags, setNewThreadTags] = useState('');
+  const [newThreadSubject, setNewThreadSubject] = useState('');
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(true);
 
-  const { threads, replies, setThreads, addThread, addReply, toggleThreadLike, toggleReplyLike, currentUser } = useAppStore();
+  const { isAuthenticated, profile } = useAuth();
   const { toast } = useToast();
   const { ref: loadMoreRef, inView } = useInView();
 
-  useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      setThreads(mockThreads);
-      setIsLoading(false);
-    }, 1000);
-  }, [setThreads]);
-
-  const filteredThreads = threads.filter(thread => {
-    const matchesSearch = thread.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         thread.content.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCourse = !selectedCourse || thread.course === selectedCourse;
-    const matchesTopic = !selectedTopic || thread.topic === selectedTopic;
-    
-    return matchesSearch && matchesCourse && matchesTopic;
+  const { data: discussionsData, isLoading } = useDiscussions({
+    subject: selectedSubject || undefined,
+    search: searchQuery || undefined,
+    limit: 20
   });
+  
+  const createDiscussionMutation = useCreateDiscussion();
+  const createReplyMutation = useCreateReply();
+  
+  // Subscribe to real-time updates
+  useDiscussionSubscription();
+  
+  const discussions = discussionsData?.data || [];
+
 
   const handleCreateThread = () => {
-    if (!newThreadTitle.trim() || !newThreadContent.trim()) {
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/community');
+      return;
+    }
+    
+    if (!newThreadTitle.trim() || !newThreadContent.trim() || !newThreadSubject) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -151,58 +81,46 @@ export default function Community() {
       return;
     }
 
-    const newThread: Omit<Thread, 'id'> = {
+    createDiscussionMutation.mutate({
       title: newThreadTitle,
       content: newThreadContent,
-      author: currentUser?.name || 'Anonymous',
-      authorId: currentUser?.id || 'anonymous',
-      authorAvatar: currentUser?.avatar,
-      course: currentUser?.course || 'General',
-      topic: 'Discussion',
-      timestamp: 'Just now',
-      likes: 0,
-      replies: 0,
-      isLiked: false,
+      subject: newThreadSubject as any,
       tags: newThreadTags.split(',').map(tag => tag.trim()).filter(Boolean)
-    };
-
-    addThread(newThread);
-    setNewThreadTitle('');
-    setNewThreadContent('');
-    setNewThreadTags('');
-    setShowNewThreadDialog(false);
-
-    toast({
-      title: "Thread created!",
-      description: "Your discussion thread has been posted."
+    }, {
+      onSuccess: () => {
+        setNewThreadTitle('');
+        setNewThreadContent('');
+        setNewThreadTags('');
+        setNewThreadSubject('');
+        setShowNewThreadDialog(false);
+      }
     });
   };
 
   const handleReply = (threadId: string) => {
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/community');
+      return;
+    }
+    
     const content = replyContent[threadId]?.trim();
     if (!content) return;
 
-    const newReply: Omit<ReplyType, 'id'> = {
-      threadId,
+    createReplyMutation.mutate({
+      discussion_id: threadId,
       content,
-      author: currentUser?.name || 'Anonymous',
-      authorId: currentUser?.id || 'anonymous',
-      authorAvatar: currentUser?.avatar,
-      timestamp: 'Just now',
-      likes: 0,
-      isLiked: false
-    };
-
-    addReply(newReply);
-    setReplyContent(prev => ({ ...prev, [threadId]: '' }));
-
-    toast({
-      title: "Reply posted!",
-      description: "Your reply has been added to the discussion."
+    }, {
+      onSuccess: () => {
+        setReplyContent(prev => ({ ...prev, [threadId]: '' }));
+      }
     });
   };
 
-  const ThreadCard = ({ thread }: { thread: Thread }) => (
+  const ThreadCard = ({ thread }: { thread: any }) => {
+    const { data: repliesData } = useDiscussionReplies(thread.id);
+    const replies = repliesData?.data || [];
+    
+    return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
@@ -215,21 +133,21 @@ export default function Community() {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <Avatar>
-                <AvatarImage src={thread.authorAvatar} />
-                <AvatarFallback>{thread.author.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                <AvatarImage src={thread.profiles?.avatar_url} />
+                <AvatarFallback>{(thread.profiles?.full_name || 'U').split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium">{thread.author}</p>
+                <p className="font-medium">{thread.profiles?.full_name || 'Anonymous'}</p>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <BookOpen className="w-3 h-3" />
-                  <span>{thread.course}</span>
+                  <span>{thread.subject}</span>
                   <span>•</span>
                   <Clock className="w-3 h-3" />
-                  <span>{thread.timestamp}</span>
+                  <span>{new Date(thread.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
-            <Badge variant="outline">{thread.topic}</Badge>
+            <Badge variant="outline">{thread.subject}</Badge>
           </div>
         </CardHeader>
         
@@ -242,7 +160,7 @@ export default function Community() {
             <p className="text-muted-foreground line-clamp-2">{thread.content}</p>
           </div>
 
-          {thread.tags.length > 0 && (
+          {thread.tags && thread.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {thread.tags.map((tag, index) => (
                 <Badge key={index} variant="secondary" className="text-xs">
@@ -258,11 +176,10 @@ export default function Community() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => toggleThreadLike(thread.id)}
-                className={thread.isLiked ? 'text-red-500' : ''}
+                className="text-muted-foreground"
               >
-                <Heart className={`w-4 h-4 mr-1 ${thread.isLiked ? 'fill-current' : ''}`} />
-                {thread.likes}
+                <Heart className="w-4 h-4 mr-1" />
+                {thread.likes_count || 0}
               </Button>
               
               <Button
@@ -271,7 +188,7 @@ export default function Community() {
                 onClick={() => setExpandedThread(expandedThread === thread.id ? null : thread.id)}
               >
                 <MessageSquare className="w-4 h-4 mr-1" />
-                {thread.replies}
+                {thread.replies_count || 0}
               </Button>
               
               <Button variant="ghost" size="sm">
@@ -302,28 +219,27 @@ export default function Community() {
               >
                 {/* Replies */}
                 <div className="space-y-3">
-                  {(replies[thread.id] || mockReplies[thread.id] || []).map((reply) => (
+                  {replies.map((reply) => (
                     <div key={reply.id} className="flex gap-3 p-3 bg-muted/50 rounded-lg">
                       <Avatar className="w-8 h-8">
-                        <AvatarImage src={reply.authorAvatar} />
+                        <AvatarImage src={reply.profiles?.avatar_url} />
                         <AvatarFallback className="text-xs">
-                          {reply.author.split(' ').map(n => n[0]).join('')}
+                          {(reply.profiles?.full_name || 'U').split(' ').map((n: string) => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium">{reply.author}</span>
-                          <span className="text-muted-foreground">{reply.timestamp}</span>
+                          <span className="font-medium">{reply.profiles?.full_name || 'Anonymous'}</span>
+                          <span className="text-muted-foreground">{new Date(reply.created_at).toLocaleDateString()}</span>
                         </div>
                         <p className="text-sm">{reply.content}</p>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => toggleReplyLike(reply.id, thread.id)}
-                          className={`h-auto p-1 ${reply.isLiked ? 'text-red-500' : ''}`}
+                          className="h-auto p-1 text-muted-foreground"
                         >
-                          <ThumbsUp className={`w-3 h-3 mr-1 ${reply.isLiked ? 'fill-current' : ''}`} />
-                          {reply.likes}
+                          <ThumbsUp className="w-3 h-3 mr-1" />
+                          {reply.likes_count || 0}
                         </Button>
                       </div>
                     </div>
@@ -333,9 +249,9 @@ export default function Community() {
                 {/* Reply Input */}
                 <div className="flex gap-3">
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={currentUser?.avatar} />
+                    <AvatarImage src={profile?.avatar_url} />
                     <AvatarFallback className="text-xs">
-                      {currentUser?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                      {profile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 flex gap-2">
@@ -363,7 +279,8 @@ export default function Community() {
         </CardContent>
       </Card>
     </motion.div>
-  );
+    );
+  };
 
   const LoadingSkeleton = () => (
     <div className="space-y-4">
@@ -424,11 +341,12 @@ export default function Community() {
                 <SelectValue placeholder="Course" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Courses</SelectItem>
-                <SelectItem value="Computer Science">Computer Science</SelectItem>
-                <SelectItem value="Physics">Physics</SelectItem>
-                <SelectItem value="Engineering">Engineering</SelectItem>
-                <SelectItem value="Mathematics">Mathematics</SelectItem>
+                <SelectItem value="">All Subjects</SelectItem>
+                <SelectItem value="programming">Programming</SelectItem>
+                <SelectItem value="mathematics">Mathematics</SelectItem>
+                <SelectItem value="database">Database</SelectItem>
+                <SelectItem value="ai_ml">AI & ML</SelectItem>
+                <SelectItem value="web_development">Web Development</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -450,6 +368,19 @@ export default function Community() {
                   value={newThreadTitle}
                   onChange={(e) => setNewThreadTitle(e.target.value)}
                 />
+                <Select value={newThreadSubject} onValueChange={setNewThreadSubject}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="programming">Programming</SelectItem>
+                    <SelectItem value="mathematics">Mathematics</SelectItem>
+                    <SelectItem value="database">Database</SelectItem>
+                    <SelectItem value="ai_ml">AI & ML</SelectItem>
+                    <SelectItem value="web_development">Web Development</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Textarea
                   placeholder="What would you like to discuss?"
                   value={newThreadContent}
@@ -497,11 +428,11 @@ export default function Community() {
             ) : (
               <AnimatePresence mode="wait">
                 <div className="space-y-4">
-                  {filteredThreads.map(thread => (
+                  {discussions.map(thread => (
                     <ThreadCard key={thread.id} thread={thread} />
                   ))}
                   
-                  {filteredThreads.length === 0 && (
+                  {!isLoading && discussions.length === 0 && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}

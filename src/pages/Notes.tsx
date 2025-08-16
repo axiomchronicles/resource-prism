@@ -26,69 +26,8 @@ import { SearchBar } from "@/components/SearchBar";
 import { useToast } from "@/hooks/use-toast";
 import { QuickPreviewDrawer } from "@/components/QuickPreviewDrawer";
 import { useAppStore } from "@/stores/appStore";
-
-const mockNotes = [
-  {
-    id: 1,
-    title: "Data Structures and Algorithms Complete Guide",
-    subject: "Computer Science",
-    semester: "3rd",
-    course: "CS301",
-    author: "John Doe",
-    downloads: 1240,
-    rating: 4.9,
-    pages: 45,
-    tags: ["algorithms", "data-structures", "programming"],
-    uploadDate: "2024-01-15",
-    preview: "Comprehensive guide covering arrays, linked lists, trees, graphs, and advanced algorithms with examples.",
-    thumbnail: "/api/placeholder/300/200"
-  },
-  {
-    id: 2,
-    title: "Object-Oriented Programming Concepts",
-    subject: "Computer Science",
-    semester: "2nd",
-    course: "CS201",
-    author: "Jane Smith",
-    downloads: 890,
-    rating: 4.7,
-    pages: 32,
-    tags: ["oop", "java", "concepts"],
-    uploadDate: "2024-01-10",
-    preview: "Essential OOP concepts including inheritance, polymorphism, encapsulation, and abstraction.",
-    thumbnail: "/api/placeholder/300/200"
-  },
-  {
-    id: 3,
-    title: "Database Management Systems",
-    subject: "Computer Science",
-    semester: "4th",
-    course: "CS401",
-    author: "Mike Johnson",
-    downloads: 650,
-    rating: 4.8,
-    pages: 38,
-    tags: ["database", "sql", "normalization"],
-    uploadDate: "2024-01-08",
-    preview: "Complete notes on RDBMS concepts, SQL queries, normalization, and database design principles.",
-    thumbnail: "/api/placeholder/300/200"
-  },
-  {
-    id: 4,
-    title: "Machine Learning Fundamentals",
-    subject: "Computer Science",
-    semester: "6th",
-    course: "CS601",
-    author: "Sarah Wilson",
-    downloads: 1100,
-    rating: 4.9,
-    pages: 52,
-    tags: ["ml", "python", "algorithms"],
-    uploadDate: "2024-01-05",
-    preview: "Introduction to machine learning algorithms, supervised and unsupervised learning techniques.",
-    thumbnail: "/api/placeholder/300/200"
-  }
-];
+import { useResources, useToggleFavorite, useIncrementView, useIncrementDownload } from "@/hooks/useResources";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Notes() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,26 +35,51 @@ export default function Notes() {
   const [sortBy, setSortBy] = useState("downloads");
   const [selectedSemester, setSelectedSemester] = useState("all");
   const [selectedSubject, setSelectedSubject] = useState("all");
-  const [savedNotes, setSavedNotes] = useState<number[]>([]);
   const { setPreviewResource, previewResource } = useAppStore();
+  
+  const { data: resourcesData, isLoading } = useResources({
+    type: 'notes',
+    subject: selectedSubject !== 'all' ? selectedSubject : undefined,
+    semester: selectedSemester !== 'all' ? selectedSemester : undefined,
+    search: searchQuery || undefined,
+    limit: 20
+  });
+  
+  const toggleFavoriteMutation = useToggleFavorite();
+  const incrementViewMutation = useIncrementView();
+  const incrementDownloadMutation = useIncrementDownload();
+  
+  const resources = resourcesData?.data || [];
 
-  const toggleSaveNote = (noteId: number) => {
-    setSavedNotes(prev => 
-      prev.includes(noteId) 
-        ? prev.filter(id => id !== noteId)
-        : [...prev, noteId]
-    );
+  const handleToggleFavorite = (resourceId: string) => {
+    toggleFavoriteMutation.mutate(resourceId);
   };
 
-  const filteredNotes = mockNotes.filter(note => {
-    const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesSemester = selectedSemester === "all" || note.semester === selectedSemester;
-    const matchesSubject = selectedSubject === "all" || note.subject === selectedSubject;
-    
-    return matchesSearch && matchesSemester && matchesSubject;
-  });
+  const handlePreview = (resource: any) => {
+    incrementViewMutation.mutate(resource.id);
+    setPreviewResource({
+      id: resource.id,
+      title: resource.title,
+      type: resource.type,
+      subject: resource.subject,
+      semester: resource.semester,
+      author: resource.profiles?.full_name || 'Unknown',
+      authorId: resource.uploaded_by,
+      uploadDate: resource.created_at,
+      downloadUrl: resource.file_url,
+      fileSize: resource.file_size ? `${(resource.file_size / 1024 / 1024).toFixed(1)} MB` : 'Unknown',
+      downloads: resource.downloads_count || 0,
+      rating: resource.rating || 0,
+      tags: resource.tags || [],
+      description: resource.description || '',
+      difficulty: 'Medium' as any
+    });
+  };
 
+  const handleDownload = (resource: any) => {
+    incrementDownloadMutation.mutate(resource.id);
+    window.open(resource.file_url, '_blank');
+  };
   return (
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4">
@@ -209,7 +173,7 @@ export default function Notes() {
           className="mb-6"
         >
           <p className="text-muted-foreground">
-            Showing {filteredNotes.length} of {mockNotes.length} notes
+            {isLoading ? 'Loading...' : `Showing ${resources.length} notes`}
           </p>
         </motion.div>
 
@@ -226,7 +190,20 @@ export default function Notes() {
                 : "space-y-4"
             }
           >
-            {filteredNotes.map((note, index) => (
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, index) => (
+                <Card key={index} className="glass border-white/20 p-6">
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2 mb-4" />
+                  <Skeleton className="h-16 w-full mb-4" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-8 flex-1" />
+                    <Skeleton className="h-8 flex-1" />
+                  </div>
+                </Card>
+              ))
+            ) : (
+              resources.map((note, index) => (
               <motion.div
                 key={note.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -252,25 +229,19 @@ export default function Notes() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => toggleSaveNote(note.id)}
+                          onClick={() => handleToggleFavorite(note.id)}
                           className="shrink-0"
                         >
-                          <Heart 
-                            className={`w-4 h-4 ${
-                              savedNotes.includes(note.id) 
-                                ? "fill-red-500 text-red-500" 
-                                : "text-muted-foreground"
-                            }`} 
-                          />
+                          <Heart className="w-4 h-4 text-muted-foreground" />
                         </Button>
                       </div>
 
                       <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                        {note.preview}
+                        {note.description}
                       </p>
 
                       <div className="flex flex-wrap gap-1 mb-4">
-                        {note.tags.slice(0, 3).map(tag => (
+                        {(note.tags || []).slice(0, 3).map(tag => (
                           <span key={tag} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
                             #{tag}
                           </span>
@@ -280,13 +251,13 @@ export default function Notes() {
                       <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                         <span className="flex items-center gap-1">
                           <Download className="w-4 h-4" />
-                          {note.downloads}
+                          {note.downloads_count}
                         </span>
                         <span className="flex items-center gap-1">
                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                           {note.rating}
                         </span>
-                        <span>{note.pages} pages</span>
+                        <span>{note.file_size ? `${(note.file_size / 1024 / 1024).toFixed(1)} MB` : 'Unknown size'}</span>
                       </div>
 
                       <div className="flex gap-2">
@@ -294,29 +265,17 @@ export default function Notes() {
                           variant="outline" 
                           size="sm" 
                           className="flex-1"
-                          onClick={() => setPreviewResource({
-                            id: note.id.toString(),
-                            title: note.title,
-                            type: 'pdf',
-                            subject: note.subject,
-                            semester: note.semester,
-                            author: note.author,
-                            authorId: 'author1',
-                            uploadDate: note.uploadDate,
-                            downloadUrl: '/sample.pdf',
-                            fileSize: '2.5 MB',
-                            downloads: note.downloads,
-                            rating: note.rating,
-                            tags: note.tags,
-                            description: note.preview,
-                            pages: note.pages,
-                            difficulty: 'Medium'
-                          })}
+                          onClick={() => handlePreview(note)}
                         >
                           <Eye className="w-4 h-4" />
                           Preview
                         </Button>
-                        <Button variant="default" size="sm" className="flex-1">
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleDownload(note)}
+                        >
                           <Download className="w-4 h-4" />
                           Download
                         </Button>
@@ -330,47 +289,49 @@ export default function Notes() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => toggleSaveNote(note.id)}
+                            onClick={() => handleToggleFavorite(note.id)}
                           >
-                            <Heart 
-                              className={`w-4 h-4 ${
-                                savedNotes.includes(note.id) 
-                                  ? "fill-red-500 text-red-500" 
-                                  : "text-muted-foreground"
-                              }`} 
-                            />
+                            <Heart className="w-4 h-4 text-muted-foreground" />
                           </Button>
                         </div>
 
                         <div className="flex items-center gap-2 mb-2">
                           <Badge variant="secondary">{note.subject}</Badge>
                           <Badge variant="outline">{note.semester} Sem</Badge>
-                          <span className="text-sm text-muted-foreground">by {note.author}</span>
+                          <span className="text-sm text-muted-foreground">by {note.profiles?.full_name || 'Unknown'}</span>
                         </div>
 
                         <p className="text-sm text-muted-foreground mb-3">
-                          {note.preview}
+                          {note.description}
                         </p>
 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Download className="w-4 h-4" />
-                              {note.downloads}
+                              {note.downloads_count}
                             </span>
                             <span className="flex items-center gap-1">
                               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                               {note.rating}
                             </span>
-                            <span>{note.pages} pages</span>
+                            <span>{note.file_size ? `${(note.file_size / 1024 / 1024).toFixed(1)} MB` : 'Unknown'}</span>
                           </div>
 
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handlePreview(note)}
+                            >
                               <Eye className="w-4 h-4" />
                               Preview
                             </Button>
-                            <Button variant="default" size="sm">
+                            <Button 
+                              variant="default" 
+                              size="sm"
+                              onClick={() => handleDownload(note)}
+                            >
                               <Download className="w-4 h-4" />
                               Download
                             </Button>
@@ -381,11 +342,12 @@ export default function Notes() {
                   )}
                 </Card>
               </motion.div>
-            ))}
+              ))
+            )}
           </motion.div>
         </AnimatePresence>
 
-        {filteredNotes.length === 0 && (
+        {!isLoading && resources.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

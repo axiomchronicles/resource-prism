@@ -17,7 +17,8 @@ import { SearchBar } from "@/components/SearchBar";
 import { Card } from "@/components/ui/card";
 import { QuickPreviewDrawer } from "@/components/QuickPreviewDrawer";
 import { useAppStore } from "@/stores/appStore";
-import heroImage from "@/assets/hero-bg.jpg";
+import { useFeaturedResources, useTrendingResources, useResourceSubscription } from "@/hooks/useResources";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const categories = [
   {
@@ -54,30 +55,6 @@ const categories = [
   }
 ];
 
-const trendingResources = [
-  {
-    title: "Data Structures & Algorithms",
-    type: "Notes",
-    downloads: 1240,
-    rating: 4.9,
-    subject: "Computer Science"
-  },
-  {
-    title: "Machine Learning Basics",
-    type: "PPT",
-    downloads: 980,
-    rating: 4.8,
-    subject: "Computer Science"
-  },
-  {
-    title: "Database Systems 2023",
-    type: "Paper",
-    downloads: 760,
-    rating: 4.7,
-    subject: "Computer Science"
-  }
-];
-
 const stats = [
   { label: "Resources", value: "5,180+" },
   { label: "Students", value: "12,000+" },
@@ -87,15 +64,21 @@ const stats = [
 
 export default function Home() {
   const { setPreviewResource, previewResource } = useAppStore();
+  const { data: featuredData, isLoading: featuredLoading } = useFeaturedResources();
+  const { data: trendingData, isLoading: trendingLoading } = useTrendingResources();
+  
+  // Subscribe to real-time updates
+  useResourceSubscription();
+  
+  const featuredResources = featuredData?.data || [];
+  const trendingResources = trendingData?.data || [];
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
         {/* Background */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
         <div className="absolute inset-0 bg-gradient-hero" />
         
         {/* Content */}
@@ -262,63 +245,79 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {trendingResources.map((resource, index) => (
-              <motion.div
-                key={resource.title}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ scale: 1.05 }}
-              >
-                <Card className="p-6 glass border-white/20 hover:border-white/40 transition-all duration-300 hover:shadow-medium">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg mb-2">{resource.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">{resource.subject}</p>
-                      <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                        {resource.type}
-                      </span>
+            {trendingLoading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <Card key={index} className="p-6 glass border-white/20">
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2 mb-4" />
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-4">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-16" />
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Download className="w-4 h-4" />
-                        {resource.downloads}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        {resource.rating}
-                      </span>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => setPreviewResource({
-                        id: resource.title,
-                        title: resource.title,
-                        type: 'pdf',
-                        subject: resource.subject,
-                        semester: '3rd',
-                        author: 'Student',
-                        authorId: 'student1',
-                        uploadDate: '2024-01-15',
-                        downloadUrl: '/sample.pdf',
-                        fileSize: '2.5 MB',
-                        downloads: resource.downloads,
-                        rating: resource.rating,
-                        tags: [resource.type],
-                        description: `Preview of ${resource.title}`,
-                        difficulty: 'Medium'
-                      })}
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      Quick Preview
-                    </Button>
+                    <Skeleton className="h-8 w-24" />
                   </div>
                 </Card>
-              </motion.div>
-            ))}
+              ))
+            ) : (
+              trendingResources.map((resource, index) => (
+                <motion.div
+                  key={resource.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <Card className="p-6 glass border-white/20 hover:border-white/40 transition-all duration-300 hover:shadow-medium">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg mb-2">{resource.title}</h3>
+                        <p className="text-sm text-muted-foreground mb-2">{resource.subject}</p>
+                        <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                          {resource.type}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Download className="w-4 h-4" />
+                          {resource.downloads_count}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          {resource.rating}
+                        </span>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setPreviewResource({
+                          id: resource.id,
+                          title: resource.title,
+                          type: resource.type as any,
+                          subject: resource.subject,
+                          semester: resource.semester,
+                          author: resource.profiles?.full_name || 'Unknown',
+                          authorId: resource.uploaded_by,
+                          uploadDate: resource.created_at,
+                          downloadUrl: resource.file_url,
+                          fileSize: resource.file_size ? `${(resource.file_size / 1024 / 1024).toFixed(1)} MB` : 'Unknown',
+                          downloads: resource.downloads_count || 0,
+                          rating: resource.rating || 0,
+                          tags: resource.tags || [],
+                          description: resource.description || '',
+                          difficulty: 'Medium' as any
+                        })}
+                      >
+                        <Search className="w-4 h-4 mr-2" />
+                        Quick Preview
+                      </Button>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </section>

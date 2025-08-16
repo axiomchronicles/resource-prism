@@ -24,73 +24,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { useAppStore, Notification } from '@/stores/appStore';
+import { useAppStore } from '@/stores/appStore';
 import { useToast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
+import { useNotifications, useMarkAsRead, useMarkAllAsRead, useNotificationSubscription } from '@/hooks/useNotifications';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthGuard } from '@/components/AuthGuard';
 
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'upload',
-    title: 'New upload from Alex Kumar',
-    message: 'Data Structures Notes - Chapter 5: Trees and Graphs',
-    timestamp: '2 minutes ago',
-    isRead: false,
-    resourceId: 'res1',
-    userId: 'user1',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alex'
-  },
-  {
-    id: '2',
-    type: 'download',
-    title: 'Download completed',
-    message: 'Physics Formulas Cheat Sheet.pdf has been downloaded',
-    timestamp: '15 minutes ago',
-    isRead: false,
-    resourceId: 'res2'
-  },
-  {
-    id: '3',
-    type: 'comment',
-    title: 'New comment on your post',
-    message: 'Sarah Wilson commented on "Best DSA Resources"',
-    timestamp: '1 hour ago',
-    isRead: false,
-    userId: 'user2',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah'
-  },
-  {
-    id: '4',
-    type: 'like',
-    title: 'Your post was liked',
-    message: 'Mike Chen liked your discussion "Study Group Formation"',
-    timestamp: '2 hours ago',
-    isRead: true,
-    userId: 'user3',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mike'
-  },
-  {
-    id: '5',
-    type: 'follow',
-    title: 'New follower',
-    message: 'Priya Singh started following you',
-    timestamp: '3 hours ago',
-    isRead: true,
-    userId: 'user4',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=priya'
-  },
-  {
-    id: '6',
-    type: 'upload',
-    title: 'New upload in Computer Science',
-    message: 'Operating Systems Lab Manual - Complete Guide',
-    timestamp: '5 hours ago',
-    isRead: true,
-    resourceId: 'res3',
-    userId: 'user5',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john'
-  }
-];
 
 export default function Notifications() {
   const [filter, setFilter] = useState('all');
@@ -106,44 +46,19 @@ export default function Notifications() {
     soundEnabled: true
   });
 
-  const { notifications, unreadCount, markAsRead, markAllAsRead, addNotification } = useAppStore();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const { ref: loadMoreRef, inView } = useInView();
 
-  useEffect(() => {
-    // Simulate real-time notifications
-    const interval = setInterval(() => {
-      if (Math.random() > 0.8) { // 20% chance every 10 seconds
-        const types = ['upload', 'download', 'comment', 'like', 'follow'] as const;
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        
-        const newNotification: Omit<Notification, 'id'> = {
-          type: randomType,
-          title: getNotificationTitle(randomType),
-          message: getNotificationMessage(randomType),
-          timestamp: 'Just now',
-          isRead: false,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`
-        };
-
-        addNotification(newNotification);
-        
-        // Show toast notification
-        if (notificationSettings.soundEnabled) {
-          sonnerToast(newNotification.title, {
-            description: newNotification.message,
-            icon: getNotificationIcon(randomType),
-            action: {
-              label: 'View',
-              onClick: () => markAsRead(newNotification.timestamp)
-            }
-          });
-        }
-      }
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [addNotification, markAsRead, notificationSettings.soundEnabled]);
+  const { data: notificationsData, isLoading } = useNotifications();
+  const markAsReadMutation = useMarkAsRead();
+  const markAllAsReadMutation = useMarkAllAsRead();
+  
+  // Subscribe to real-time notifications
+  useNotificationSubscription();
+  
+  const notifications = notificationsData?.data || [];
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const getNotificationTitle = (type: string) => {
     switch (type) {
@@ -189,31 +104,21 @@ export default function Notifications() {
     }
   };
 
-  const allNotifications = notifications.length > 0 ? notifications : mockNotifications;
-  
-  const filteredNotifications = allNotifications.filter(notification => {
+  const filteredNotifications = notifications.filter(notification => {
     if (filter === 'all') return true;
-    if (filter === 'unread') return !notification.isRead;
+    if (filter === 'unread') return !notification.is_read;
     return notification.type === filter;
   });
 
   const handleMarkAsRead = (notificationId: string) => {
-    markAsRead(notificationId);
-    toast({
-      title: "Marked as read",
-      description: "Notification has been marked as read"
-    });
+    markAsReadMutation.mutate(notificationId);
   };
 
   const handleMarkAllAsRead = () => {
-    markAllAsRead();
-    toast({
-      title: "All notifications marked as read",
-      description: `${unreadCount} notifications marked as read`
-    });
+    markAllAsReadMutation.mutate();
   };
 
-  const NotificationCard = ({ notification }: { notification: Notification }) => (
+  const NotificationCard = ({ notification }: { notification: any }) => (
     <motion.div
       layout
       initial={{ opacity: 0, x: 20 }}
@@ -224,7 +129,7 @@ export default function Notifications() {
       whileTap={{ scale: 0.98 }}
     >
       <Card className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-        !notification.isRead ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' : ''
+        !notification.is_read ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' : ''
       }`}>
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
@@ -234,26 +139,26 @@ export default function Notifications() {
             </div>
 
             {/* Avatar (if user notification) */}
-            {notification.avatar && (
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={notification.avatar} />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-            )}
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${notification.id}`} />
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
-                  <p className={`font-medium ${!notification.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <p className={`font-medium ${!notification.is_read ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {notification.title}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                     {notification.message}
                   </p>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs text-muted-foreground">{notification.timestamp}</span>
-                    {!notification.isRead && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(notification.created_at).toLocaleDateString()}
+                    </span>
+                    {!notification.is_read && (
                       <Badge variant="secondary" className="text-xs">New</Badge>
                     )}
                   </div>
@@ -261,7 +166,7 @@ export default function Notifications() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-1">
-                  {!notification.isRead && (
+                  {!notification.is_read && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -291,6 +196,7 @@ export default function Notifications() {
   );
 
   return (
+    <AuthGuard requireAuth>
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -423,7 +329,21 @@ export default function Notifications() {
 
         {/* Notifications List */}
         <AnimatePresence mode="wait">
-          {filteredNotifications.length > 0 ? (
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Card key={i} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : filteredNotifications.length > 0 ? (
             <div className="space-y-3">
               {filteredNotifications.map((notification) => (
                 <NotificationCard key={notification.id} notification={notification} />
@@ -459,5 +379,6 @@ export default function Notifications() {
         </div>
       </motion.div>
     </div>
+    </AuthGuard>
   );
 }

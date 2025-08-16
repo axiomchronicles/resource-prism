@@ -36,73 +36,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useUserFavorites, useToggleFavorite } from "@/hooks/useResources";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthGuard } from "@/components/AuthGuard";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const mockSavedResources = [
-  {
-    id: 1,
-    title: "Advanced Data Structures Notes",
-    type: "notes",
-    subject: "Computer Science",
-    semester: "3rd",
-    author: "John Doe",
-    downloads: 1240,
-    rating: 4.9,
-    pages: 45,
-    saved_date: "2024-01-20",
-    folder: "CS Subjects",
-    tags: ["algorithms", "data-structures"]
-  },
-  {
-    id: 2,
-    title: "Machine Learning Presentation",
-    type: "ppt",
-    subject: "Computer Science",
-    semester: "6th",
-    author: "Dr. Sarah Wilson",
-    downloads: 980,
-    rating: 4.8,
-    slides: 52,
-    saved_date: "2024-01-18",
-    folder: "AI & ML",
-    tags: ["ml", "python", "ai"]
-  },
-  {
-    id: 3,
-    title: "Database Systems Past Paper 2023",
-    type: "paper",
-    subject: "Computer Science",
-    semester: "4th",
-    author: "Prof. Mike Johnson",
-    downloads: 760,
-    rating: 4.7,
-    pages: 12,
-    saved_date: "2024-01-15",
-    folder: "Past Papers",
-    tags: ["database", "sql", "exam"]
-  },
-  {
-    id: 4,
-    title: "React Tutorial Series",
-    type: "tutorial",
-    subject: "Computer Science",
-    semester: "5th",
-    author: "Jane Smith",
-    views: 15000,
-    rating: 4.9,
-    duration: "4h 30m",
-    saved_date: "2024-01-12",
-    folder: "Web Development",
-    tags: ["react", "javascript", "frontend"]
-  }
-];
 
-const folders = [
-  { name: "All", count: mockSavedResources.length },
-  { name: "CS Subjects", count: 1 },
-  { name: "AI & ML", count: 1 },
-  { name: "Past Papers", count: 1 },
-  { name: "Web Development", count: 1 },
-];
 
 export default function MyLibrary() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,6 +52,19 @@ export default function MyLibrary() {
   const [selectedResources, setSelectedResources] = useState<number[]>([]);
   const [newFolderName, setNewFolderName] = useState("");
 
+  const { data: favoritesData, isLoading } = useUserFavorites();
+  const toggleFavoriteMutation = useToggleFavorite();
+  
+  const favorites = favoritesData?.data || [];
+  const savedResources = favorites.map(fav => fav.resources).filter(Boolean);
+  
+  const folders = [
+    { name: "All", count: savedResources.length },
+    { name: "Notes", count: savedResources.filter(r => r.type === 'notes').length },
+    { name: "PPTs", count: savedResources.filter(r => r.type === 'ppt').length },
+    { name: "Past Papers", count: savedResources.filter(r => r.type === 'past_paper').length },
+    { name: "Tutorials", count: savedResources.filter(r => r.type === 'tutorial').length },
+  ];
   const toggleResourceSelection = (resourceId: number) => {
     setSelectedResources(prev => 
       prev.includes(resourceId) 
@@ -122,28 +74,32 @@ export default function MyLibrary() {
   };
 
   const selectAllResources = () => {
-    if (selectedResources.length === filteredResources.length) {
+    if (selectedResources.length === savedResources.length) {
       setSelectedResources([]);
     } else {
-      setSelectedResources(filteredResources.map(resource => resource.id));
+      setSelectedResources(savedResources.map(resource => parseInt(resource.id)));
     }
   };
 
-  const filteredResources = mockSavedResources.filter(resource => {
+  const filteredResources = savedResources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         resource.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesFolder = selectedFolder === "All" || resource.folder === selectedFolder;
+                         (resource.tags || []).some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesFolder = selectedFolder === "All" || 
+      (selectedFolder === "Notes" && resource.type === 'notes') ||
+      (selectedFolder === "PPTs" && resource.type === 'ppt') ||
+      (selectedFolder === "Past Papers" && resource.type === 'past_paper') ||
+      (selectedFolder === "Tutorials" && resource.type === 'tutorial');
     const matchesType = selectedType === "all" || resource.type === selectedType;
     
     return matchesSearch && matchesFolder && matchesType;
   });
 
   const removeFromLibrary = (resourceId: number) => {
-    // Handle removing resource from library
-    console.log("Remove resource:", resourceId);
+    toggleFavoriteMutation.mutate(resourceId.toString());
   };
 
   return (
+    <AuthGuard requireAuth>
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4">
         {/* Header */}
@@ -330,7 +286,7 @@ export default function MyLibrary() {
               className="mb-6"
             >
               <p className="text-muted-foreground">
-                {filteredResources.length} resources in {selectedFolder === "All" ? "library" : selectedFolder}
+               {isLoading ? 'Loading...' : `${filteredResources.length} resources in ${selectedFolder === "All" ? "library" : selectedFolder}`}
               </p>
             </motion.div>
 
@@ -347,7 +303,20 @@ export default function MyLibrary() {
                     : "space-y-4"
                 }
               >
-                {filteredResources.map((resource, index) => (
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <Card key={index} className="glass border-white/20 p-6">
+                      <Skeleton className="h-6 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-1/2 mb-4" />
+                      <Skeleton className="h-16 w-full mb-4" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-8 flex-1" />
+                        <Skeleton className="h-8 flex-1" />
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  filteredResources.map((resource, index) => (
                   <motion.div
                     key={resource.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -358,7 +327,7 @@ export default function MyLibrary() {
                     <Card className={`glass border-white/20 hover:border-white/40 transition-all duration-300 hover:shadow-medium overflow-hidden ${
                       viewMode === "list" ? "flex" : ""
                     } ${
-                      selectedResources.includes(resource.id) ? "ring-2 ring-primary" : ""
+                      selectedResources.includes(parseInt(resource.id)) ? "ring-2 ring-primary" : ""
                     }`}>
                       {viewMode === "grid" ? (
                         <div className="p-6">
@@ -366,8 +335,8 @@ export default function MyLibrary() {
                             <div className="flex items-center gap-2">
                               <input
                                 type="checkbox"
-                                checked={selectedResources.includes(resource.id)}
-                                onChange={() => toggleResourceSelection(resource.id)}
+                                checked={selectedResources.includes(parseInt(resource.id))}
+                                onChange={() => toggleResourceSelection(parseInt(resource.id))}
                                 className="rounded border-gray-300"
                               />
                               <div className="flex-1">
@@ -379,14 +348,14 @@ export default function MyLibrary() {
                                   <Badge variant="outline">{resource.semester} Sem</Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                  by {resource.author}
+                                  by {resource.profiles?.full_name || 'Unknown'}
                                 </p>
                               </div>
                             </div>
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => removeFromLibrary(resource.id)}
+                              onClick={() => removeFromLibrary(parseInt(resource.id))}
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -394,7 +363,7 @@ export default function MyLibrary() {
                           </div>
 
                           <div className="flex flex-wrap gap-1 mb-4">
-                            {resource.tags.slice(0, 3).map(tag => (
+                            {(resource.tags || []).slice(0, 3).map(tag => (
                               <span key={tag} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-md">
                                 #{tag}
                               </span>
@@ -404,7 +373,7 @@ export default function MyLibrary() {
                           <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                             <span className="flex items-center gap-1">
                               <Download className="w-4 h-4" />
-                              {resource.downloads || resource.views}
+                              {resource.downloads_count}
                             </span>
                             <span className="flex items-center gap-1">
                               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -412,7 +381,7 @@ export default function MyLibrary() {
                             </span>
                             <span className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
-                              {resource.saved_date}
+                              {new Date(resource.created_at).toLocaleDateString()}
                             </span>
                           </div>
 
@@ -432,8 +401,8 @@ export default function MyLibrary() {
                           <div className="flex items-center gap-4 flex-1">
                             <input
                               type="checkbox"
-                              checked={selectedResources.includes(resource.id)}
-                              onChange={() => toggleResourceSelection(resource.id)}
+                              checked={selectedResources.includes(parseInt(resource.id))}
+                              onChange={() => toggleResourceSelection(parseInt(resource.id))}
                               className="rounded border-gray-300"
                             />
                             <div className="flex-1">
@@ -443,16 +412,16 @@ export default function MyLibrary() {
                                   <div className="flex items-center gap-2 mb-1">
                                     <Badge variant="secondary">{resource.type}</Badge>
                                     <Badge variant="outline">{resource.semester} Sem</Badge>
-                                    <span className="text-sm text-muted-foreground">by {resource.author}</span>
+                                    <span className="text-sm text-muted-foreground">by {resource.profiles?.full_name || 'Unknown'}</span>
                                   </div>
                                   <p className="text-sm text-muted-foreground">
-                                    Saved in {resource.folder} • {resource.saved_date}
+                                    Saved • {new Date(resource.created_at).toLocaleDateString()}
                                   </p>
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => removeFromLibrary(resource.id)}
+                                  onClick={() => removeFromLibrary(parseInt(resource.id))}
                                   className="text-destructive hover:text-destructive"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -463,7 +432,7 @@ export default function MyLibrary() {
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
                                     <Download className="w-4 h-4" />
-                                    {resource.downloads || resource.views}
+                                    {resource.downloads_count}
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -488,11 +457,12 @@ export default function MyLibrary() {
                       )}
                     </Card>
                   </motion.div>
-                ))}
+                  ))
+                )}
               </motion.div>
             </AnimatePresence>
 
-            {filteredResources.length === 0 && (
+            {!isLoading && filteredResources.length === 0 && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -515,5 +485,6 @@ export default function MyLibrary() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

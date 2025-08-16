@@ -16,6 +16,17 @@ import {
 import { MessageSquare, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { LogOut, Settings, User } from "lucide-react";
 
 const navItems = [
   { name: "Home", href: "/", icon: GraduationCap },
@@ -35,6 +46,7 @@ export const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, profile, signOut, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -67,7 +79,11 @@ export const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => {
+            {navItems.filter(item => {
+              // Show auth-required items only to authenticated users
+              const authRequiredItems = ['/dashboard', '/library', '/community', '/notifications', '/upload'];
+              return isAuthenticated || !authRequiredItems.includes(item.href);
+            }).map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
               
@@ -87,6 +103,84 @@ export const Navigation = () => {
                 </Link>
               );
             })}
+            
+            {!isAuthenticated && (
+              <>
+                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="default" className="w-full justify-start">
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            )}
+            
+            {isAuthenticated && (
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start text-destructive"
+                onClick={() => {
+                  signOut();
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <LogOut className="w-4 h-4 mr-3" />
+                Sign Out
+              </Button>
+            )}
+            
+            {/* Auth Section */}
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url} alt={profile?.full_name || ''} />
+                      <AvatarFallback>{profile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{profile?.full_name}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {profile?.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => signOut()}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" asChild>
+                  <Link to="/login">Sign In</Link>
+                </Button>
+                <Button variant="default" asChild>
+                  <Link to="/register">Sign Up</Link>
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -109,7 +203,10 @@ export const Navigation = () => {
             className="md:hidden border-t glass"
           >
             <div className="py-4 space-y-2">
-              {navItems.map((item) => {
+             {navItems.filter(item => {
+               const authRequiredItems = ['/dashboard', '/library', '/community', '/notifications', '/upload'];
+               return isAuthenticated || !authRequiredItems.includes(item.href);
+             }).map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
                 

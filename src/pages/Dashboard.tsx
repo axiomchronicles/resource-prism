@@ -19,84 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/hooks/useAuth";
+import { useResources, useUserFavorites } from "@/hooks/useResources";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AuthGuard } from "@/components/AuthGuard";
 
-const statsCards = [
-  {
-    title: "Total Uploads",
-    value: "24",
-    change: "+12%",
-    trend: "up",
-    icon: Upload,
-    color: "from-blue-500 to-blue-600"
-  },
-  {
-    title: "Total Downloads",
-    value: "1,247",
-    change: "+18%",
-    trend: "up",
-    icon: Download,
-    color: "from-green-500 to-green-600"
-  },
-  {
-    title: "Profile Views",
-    value: "3,892",
-    change: "+23%",
-    trend: "up",
-    icon: Eye,
-    color: "from-purple-500 to-purple-600"
-  },
-  {
-    title: "Average Rating",
-    value: "4.8",
-    change: "+0.2",
-    trend: "up",
-    icon: Star,
-    color: "from-yellow-500 to-yellow-600"
-  }
-];
-
-const recentUploads = [
-  {
-    id: 1,
-    title: "Advanced Data Structures Notes",
-    type: "notes",
-    downloads: 156,
-    rating: 4.9,
-    upload_date: "2024-01-20",
-    status: "approved",
-    views: 892
-  },
-  {
-    id: 2,
-    title: "Machine Learning Presentation",
-    type: "ppt",
-    downloads: 203,
-    rating: 4.7,
-    upload_date: "2024-01-18",
-    status: "approved",
-    views: 1204
-  },
-  {
-    id: 3,
-    title: "Database Design Past Paper",
-    type: "paper",
-    downloads: 89,
-    rating: 4.8,
-    upload_date: "2024-01-15",
-    status: "pending",
-    views: 432
-  },
-  {
-    id: 4,
-    title: "React Tutorial Series",
-    type: "tutorial",
-    downloads: 312,
-    rating: 4.9,
-    upload_date: "2024-01-12",
-    status: "approved",
-    views: 1567
-  }
-];
 
 const achievements = [
   {
@@ -143,6 +70,53 @@ const activityData = [
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
+  const { profile } = useAuth();
+  
+  // Get user's uploaded resources
+  const { data: userResourcesData, isLoading: userResourcesLoading } = useResources({
+    // This would need a custom query to filter by uploaded_by
+    limit: 10
+  });
+  
+  const { data: favoritesData, isLoading: favoritesLoading } = useUserFavorites();
+  
+  const userResources = userResourcesData?.data || [];
+  const favorites = favoritesData?.data || [];
+  
+  const statsCards = [
+    {
+      title: "Total Uploads",
+      value: profile?.uploads_count?.toString() || "0",
+      change: "+12%",
+      trend: "up",
+      icon: Upload,
+      color: "from-blue-500 to-blue-600"
+    },
+    {
+      title: "Total Downloads",
+      value: profile?.downloads_count?.toString() || "0",
+      change: "+18%",
+      trend: "up",
+      icon: Download,
+      color: "from-green-500 to-green-600"
+    },
+    {
+      title: "Contribution Points",
+      value: profile?.contribution_points?.toString() || "0",
+      change: "+23%",
+      trend: "up",
+      icon: Eye,
+      color: "from-purple-500 to-purple-600"
+    },
+    {
+      title: "Favorites",
+      value: favorites.length.toString(),
+      change: "+0.2",
+      trend: "up",
+      icon: Star,
+      color: "from-yellow-500 to-yellow-600"
+    }
+  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -163,6 +137,7 @@ export default function Dashboard() {
   };
 
   return (
+    <AuthGuard requireAuth>
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4">
         {/* Header */}
@@ -237,28 +212,39 @@ export default function Dashboard() {
                       View All
                     </Button>
                   </div>
-                  <div className="space-y-4">
-                    {recentUploads.slice(0, 3).map(upload => (
-                      <div key={upload.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-xl">
-                        <div className="flex-1">
-                          <h4 className="font-medium mb-1">{upload.title}</h4>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Download className="w-3 h-3" />
-                              {upload.downloads}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                              {upload.rating}
-                            </span>
-                          </div>
+                  {userResourcesLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="p-3 bg-muted/20 rounded-xl">
+                          <Skeleton className="h-4 w-3/4 mb-2" />
+                          <Skeleton className="h-3 w-1/2" />
                         </div>
-                        <Badge className={getStatusColor(upload.status)}>
-                          {upload.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {userResources.slice(0, 3).map(upload => (
+                        <div key={upload.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-xl">
+                          <div className="flex-1">
+                            <h4 className="font-medium mb-1">{upload.title}</h4>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Download className="w-3 h-3" />
+                                {upload.downloads_count}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                {upload.rating}
+                              </span>
+                            </div>
+                          </div>
+                          <Badge className={getStatusColor(upload.is_approved ? 'approved' : 'pending')}>
+                            {upload.is_approved ? 'approved' : 'pending'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </Card>
 
                 {/* Quick Actions */}
@@ -296,41 +282,56 @@ export default function Dashboard() {
                       Upload New
                     </Button>
                   </div>
-                  <div className="space-y-4">
-                    {recentUploads.map(upload => (
-                      <div key={upload.id} className="flex items-center justify-between p-4 bg-muted/20 rounded-xl hover:bg-muted/30 transition-colors">
-                        <div className="flex-1">
-                          <h4 className="font-medium mb-2">{upload.title}</h4>
-                          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Download className="w-4 h-4" />
-                              {upload.downloads} downloads
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Eye className="w-4 h-4" />
-                              {upload.views} views
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                              {upload.rating}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              {upload.upload_date}
-                            </span>
+                  {userResourcesLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="p-4 bg-muted/20 rounded-xl">
+                          <Skeleton className="h-5 w-3/4 mb-2" />
+                          <Skeleton className="h-4 w-full mb-2" />
+                          <div className="flex justify-between">
+                            <Skeleton className="h-4 w-1/3" />
+                            <Skeleton className="h-8 w-24" />
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Badge className={getStatusColor(upload.status)}>
-                            {upload.status}
-                          </Badge>
-                          <Button variant="outline" size="sm">
-                            View Details
-                          </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {userResources.map(upload => (
+                        <div key={upload.id} className="flex items-center justify-between p-4 bg-muted/20 rounded-xl hover:bg-muted/30 transition-colors">
+                          <div className="flex-1">
+                            <h4 className="font-medium mb-2">{upload.title}</h4>
+                            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Download className="w-4 h-4" />
+                                {upload.downloads_count} downloads
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Eye className="w-4 h-4" />
+                                {upload.views_count} views
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                {upload.rating}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                {new Date(upload.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge className={getStatusColor(upload.is_approved ? 'approved' : 'pending')}>
+                              {upload.is_approved ? 'approved' : 'pending'}
+                            </Badge>
+                            <Button variant="outline" size="sm">
+                              View Details
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Card>
             </TabsContent>
@@ -414,5 +415,6 @@ export default function Dashboard() {
         </motion.div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

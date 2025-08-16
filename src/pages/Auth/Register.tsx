@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Eye, 
   EyeOff, 
@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -27,13 +28,15 @@ export default function Register() {
     email: "",
     password: "",
     confirmPassword: "",
-    university: "",
-    course: "",
+    semester: "",
+    specialization: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -53,14 +56,39 @@ export default function Register() {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { error } = await signUp(
+        formData.email, 
+        formData.password,
+        {
+          full_name: `${formData.firstName} ${formData.lastName}`,
+          semester: formData.semester as any,
+          specialization: formData.specialization
+        }
+      );
+      
+      if (error) {
+        toast({
+          title: "Registration failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Account created!",
+          description: "Welcome to ResourceFinder! You can now start exploring resources.",
+        });
+        navigate('/dashboard');
+      }
+    } catch (error) {
       toast({
-        title: "Account Created!",
-        description: "Please check your email to verify your account.",
+        title: "Registration failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
       });
-    }, 2000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSocialSignup = (provider: string) => {
@@ -179,50 +207,45 @@ export default function Register() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="university" className="text-sm font-medium">
-                  University
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Select onValueChange={(value) => handleInputChange("university", value)}>
-                    <SelectTrigger className="pl-10">
-                      <SelectValue placeholder="Select your university" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="semester" className="text-sm font-medium">
+                    Semester
+                  </label>
+                  <Select onValueChange={(value) => handleInputChange("semester", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select semester" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="mit">MIT</SelectItem>
-                      <SelectItem value="stanford">Stanford University</SelectItem>
-                      <SelectItem value="harvard">Harvard University</SelectItem>
-                      <SelectItem value="berkeley">UC Berkeley</SelectItem>
-                      <SelectItem value="caltech">Caltech</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="1">1st Semester</SelectItem>
+                      <SelectItem value="2">2nd Semester</SelectItem>
+                      <SelectItem value="3">3rd Semester</SelectItem>
+                      <SelectItem value="4">4th Semester</SelectItem>
+                      <SelectItem value="5">5th Semester</SelectItem>
+                      <SelectItem value="6">6th Semester</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="specialization" className="text-sm font-medium">
+                    Specialization
+                  </label>
+                  <Select onValueChange={(value) => handleInputChange("specialization", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select specialization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AI&ML">AI & Machine Learning</SelectItem>
+                      <SelectItem value="Web Development">Web Development</SelectItem>
+                      <SelectItem value="Data Science">Data Science</SelectItem>
+                      <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                      <SelectItem value="Software Engineering">Software Engineering</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <label htmlFor="course" className="text-sm font-medium">
-                  Course/Major
-                </label>
-                <Select onValueChange={(value) => handleInputChange("course", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your course" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cs">Computer Science</SelectItem>
-                    <SelectItem value="ee">Electrical Engineering</SelectItem>
-                    <SelectItem value="me">Mechanical Engineering</SelectItem>
-                    <SelectItem value="math">Mathematics</SelectItem>
-                    <SelectItem value="physics">Physics</SelectItem>
-                    <SelectItem value="chemistry">Chemistry</SelectItem>
-                    <SelectItem value="biology">Biology</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-medium">
                   Password

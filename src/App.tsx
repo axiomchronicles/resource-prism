@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Layout } from "./components/Layout";
+import { AuthGuard } from "./components/AuthGuard";
 import Home from "./pages/Home";
 import Notes from "./pages/Notes";
 import PPTs from "./pages/PPTs";
@@ -45,15 +46,15 @@ function App() {
                   <Route path="ppts" element={<PPTs />} />
                   <Route path="past-papers" element={<PastPapers />} />
                   <Route path="tutorials" element={<Tutorials />} />
-                  <Route path="upload" element={<Upload />} />
+                  <Route path="upload" element={<AuthGuard requireAuth><Upload /></AuthGuard>} />
                   <Route path="classmates" element={<Classmates />} />
                   <Route path="mock-tests" element={<MockTests />} />
-                  <Route path="login" element={<Login />} />
-                  <Route path="register" element={<Register />} />
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="library" element={<MyLibrary />} />
-                  <Route path="community" element={<Community />} />
-                  <Route path="notifications" element={<Notifications />} />
+                  <Route path="login" element={<AuthGuard><Login /></AuthGuard>} />
+                  <Route path="register" element={<AuthGuard><Register /></AuthGuard>} />
+                  <Route path="dashboard" element={<AuthGuard requireAuth><Dashboard /></AuthGuard>} />
+                  <Route path="library" element={<AuthGuard requireAuth><MyLibrary /></AuthGuard>} />
+                  <Route path="community" element={<AuthGuard requireAuth><Community /></AuthGuard>} />
+                  <Route path="notifications" element={<AuthGuard requireAuth><Notifications /></AuthGuard>} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>
